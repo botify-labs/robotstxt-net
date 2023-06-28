@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RobotsTxt", "RobotsTxt\RobotsTxt.csproj", "{644CC507-F8E5-4AA7-8ED6-84A81CA97FE8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRobotsTxt", "TestRobotsTxt\TestRobotsTxt.csproj", "{DD543FBB-9CC2-45C7-AA84-FD985F587D2C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{644CC507-F8E5-4AA7-8ED6-84A81CA97FE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{644CC507-F8E5-4AA7-8ED6-84A81CA97FE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{644CC507-F8E5-4AA7-8ED6-84A81CA97FE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{644CC507-F8E5-4AA7-8ED6-84A81CA97FE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DD543FBB-9CC2-45C7-AA84-FD985F587D2C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DD543FBB-9CC2-45C7-AA84-FD985F587D2C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DD543FBB-9CC2-45C7-AA84-FD985F587D2C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DD543FBB-9CC2-45C7-AA84-FD985F587D2C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
