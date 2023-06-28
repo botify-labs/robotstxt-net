@@ -1,17 +1,11 @@
-﻿using System;
+﻿using System.Text;
 using Xunit;
 using RobotsTxt;
 
 namespace TestRobotsTxt
 {
-    public class Tests
+    public class TestsLongestMatchRobotsMatchStrategy
     {
-        [Fact]
-        public void Test1()
-        {
-            Assert.True(true);
-        }
-
         [Theory]
         [InlineData("/", "/", true)]
         [InlineData("/", "/$", true)]
@@ -27,7 +21,11 @@ namespace TestRobotsTxt
         [InlineData("/abcd/e//fg/hij/k/lm/nop/q/r/", "/*/*/*/*/*/*/*/*/*/*/*", true)]
         public void TestMatch(string path, string pattern, bool expected)
         {
-            var actual = LongestMatchRobotsMatchStrategy.Matches(path, pattern);
+            var actual =
+                LongestMatchRobotsMatchStrategy.Matches(
+                    Encoding.UTF8.GetBytes(path),
+                    Encoding.UTF8.GetBytes(pattern)
+                );
             Assert.Equal(expected, actual);
         }
     }

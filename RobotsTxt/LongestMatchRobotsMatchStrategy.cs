@@ -1,4 +1,6 @@
-﻿namespace RobotsTxt
+﻿using System;
+
+namespace RobotsTxt
 {
     /// <summary>
     /// A RobotsMatchStrategy defines a strategy for matching individual lines in a
@@ -14,19 +16,19 @@
     /// match priority &gt; 0:
     ///    Match.
     /// </summary>
-    public class LongestMatchRobotsMatchStrategy
+    internal static class LongestMatchRobotsMatchStrategy
     {
-        public static int MatchAllow(string path, string pattern)
+        internal static int MatchAllow(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
         {
             return Matches(path, pattern) ? pattern.Length : -1;
         }
 
-        public static int MatchDisallow(string path, string pattern)
+        internal static int MatchDisallow(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
         {
             return Matches(path, pattern) ? pattern.Length : -1;
         }
 
-        public static bool Matches(string path, string pattern)
+        internal static bool Matches(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
         {
             var pathlen = path.Length;
             var pos = new int[pathlen + 1];
