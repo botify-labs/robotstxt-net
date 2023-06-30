@@ -1,5 +1,3 @@
-using System;
-
 namespace RobotsTxt
 {
     public interface IRobotsParseHandler
