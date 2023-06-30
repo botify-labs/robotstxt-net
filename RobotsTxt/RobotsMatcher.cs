@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
@@ -75,7 +73,7 @@ namespace RobotsTxt
                 Debug.Assert(_userAgents != null);
                 foreach (var ua in _userAgents)
                 {
-                    if (ua != null && userAgent.EqualsIgnoreCase(ua))
+                    if (userAgent.EqualsIgnoreCase(ua))
                     {
                         _everSeenSpecificAgent = _seenSpecificAgent = true;
                         break;
@@ -223,7 +221,7 @@ namespace RobotsTxt
         internal static string GetPathParamsQuery(string url)
         {
             var searchStart = 0;
-            if (url.Length >= 2 && url[0] == '/' && url[1] == '/') searchStart = 2;
+            if (url is ['/', '/', ..]) searchStart = 2;
             var earlyPath = url.IndexOfAny(new[] { '/', '?', ';' }, searchStart);
             var protocolEnd = url.IndexOf("://", searchStart, StringComparison.Ordinal);
             if (earlyPath < protocolEnd)
