@@ -1,5 +1,3 @@
-using System;
-
 namespace RobotsTxt
 {
     public static class MyExtensions
@@ -69,7 +67,7 @@ namespace RobotsTxt
 
         public static byte ToUpper(this byte c)
         {
-            return (byte)('a' <= c && c <= 'z' ? c + ' ' : c);
+            return (byte)('a' <= c && c <= 'z' ? c - ' ' : c);
         }
     }
 }

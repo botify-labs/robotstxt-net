@@ -1,7 +1,6 @@
-﻿using System;
-
-namespace RobotsTxt
+﻿namespace RobotsTxt
 {
+
     /// <summary>
     /// A RobotsMatchStrategy defines a strategy for matching individual lines in a
     /// robots.txt file. Each Match* method should return a match priority, which is
