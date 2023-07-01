@@ -127,14 +127,15 @@ namespace RobotsTxt
             for (int i = 0; i < src.Length; i++)
             {
                 // (a) % escape sequence.
-                if (src[i] == '%' && i + 2 < src.Length &&
+                var c = src[i];
+                if (c == '%' && i + 2 < src.Length &&
                     (('a' <= src[i + 1] && src[i + 1] <= 'f') || ('a' <= src[i + 2] && src[i + 2] <= 'f')))
                 {
                     needCapitalize = true;
                     i += 2;
                 }
                 // (b) needs escaping.
-                else if (src[i] >= 0x80)
+                else if (c >= 0x80)
                 {
                     numToEscape += 1;
                 }
@@ -150,17 +151,22 @@ namespace RobotsTxt
             var j = 0;
             for (int i = 0; i < src.Length; i++)
             {
-                if (src[i] == '%' && i + 2 < src.Length && src[i + 1].IsXDigit() && src[i + 2].IsXDigit())
+                var c = src[i];
+                if (c == '%' && i + 2 < src.Length && src[i + 1].IsXDigit() && src[i + 2].IsXDigit())
                 {
                     dst[j++] = src[i++];
                     dst[j++] = src[i++].ToUpper();
                     dst[j++] = src[i++].ToUpper();
                 }
-                else if (src[i] >= 0x80)
+                else if (c >= 0x80)
                 {
                     dst[j++] = (byte)'%';
-                    dst[j++] = HexDigits[(src[i] >> 4) & 0xf];
-                    dst[j++] = HexDigits[src[i] & 0xf];
+                    dst[j++] = HexDigits[(c >> 4) & 0xf];
+                    dst[j++] = HexDigits[c & 0xf];
+                }
+                else
+                {
+                    dst[j++] = c;
                 }
             }
 
@@ -173,9 +179,9 @@ namespace RobotsTxt
             {
                 case ParsedRobotsKey.KeyType.UserAgent:
                 case ParsedRobotsKey.KeyType.Sitemap:
-                    return true;
-                default:
                     return false;
+                default:
+                    return true;
             }
         }
 

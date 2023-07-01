@@ -66,6 +66,7 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="GoogleTests.cs" />
         <Compile Include="TestLongestMatchRobotsMatchStrategy.cs" />
         <Compile Include="TestRobotsMatcher.cs" />
         <Compile Include="TestRobotsTxtParser.cs" />
