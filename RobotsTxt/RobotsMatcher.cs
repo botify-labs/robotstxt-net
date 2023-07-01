@@ -308,7 +308,7 @@ namespace RobotsTxt
         byte[]? _path;
         private List<byte[]>? _userAgents; // Set by InitUserAgentsAndPath.
 
-        internal bool OneAgentAllowedByRobots(byte[] robotsContent, string userAgent, string url)
+        public bool OneAgentAllowedByRobots(byte[] robotsContent, string userAgent, string url)
         {
             var userAgents = new List<string> { userAgent };
             return AllowedByRobots(robotsContent, userAgents, url);
