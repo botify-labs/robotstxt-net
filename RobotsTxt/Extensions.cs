@@ -13,10 +13,10 @@ namespace RobotsTxt
             {
                 var c1 = self[i];
                 var c2 = other[i];
-                if (c1 >= 'A' || c1 <= 'Z')
-                    c1 -= 32;
-                if (c2 >= 'A' || c2 <= 'Z')
-                    c2 -= 32;
+                if ('A' <= c1 && c1 <= 'Z')
+                    c1 += 32;
+                if ('A' <= c2 && c2 <= 'Z')
+                    c2 += 32;
                 if (c1 != c2)
                 {
                     return false;
@@ -37,10 +37,10 @@ namespace RobotsTxt
             {
                 var c1 = span[i];
                 var c2 = value[i];
-                if (c1 >= 'A' || c1 <= 'Z')
-                    c1 -= 32;
-                if (c2 >= 'A' || c2 <= 'Z')
-                    c2 -= ' ';
+                if ('A' <= c1 && c1 <= 'Z')
+                    c1 += 32;
+                if ('A' <= c2 && c2 <= 'Z')
+                    c2 += ' ';
                 if (c1 != (byte)c2)
                 {
                     return false;

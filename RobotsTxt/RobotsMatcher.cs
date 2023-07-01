@@ -212,7 +212,7 @@ namespace RobotsTxt
             return false;
         }
 
-        private void ParseRobotsTxt(byte[] robotsBody, RobotsMatcher parseCallback)
+        internal static void ParseRobotsTxt(byte[] robotsBody, IRobotsParseHandler parseCallback)
         {
             var parser = new RobotsTxtParser(robotsBody, parseCallback);
             parser.Parse();
@@ -307,5 +307,20 @@ namespace RobotsTxt
         // The path we want to pattern match. Set by InitUserAgentsAndPath.
         byte[]? _path;
         private List<byte[]>? _userAgents; // Set by InitUserAgentsAndPath.
+
+        internal bool OneAgentAllowedByRobots(byte[] robotsContent, string userAgent, string url)
+        {
+            var userAgents = new List<string> { userAgent };
+            return AllowedByRobots(robotsContent, userAgents, url);
+        }
+
+        internal static bool IsValidUserAgentToObey(Span<byte> userAgent)
+        {
+            return userAgent.Length > 0 && ExtractUserAgent(userAgent) == userAgent;
+        }
+        internal static bool IsValidUserAgentToObey(string userAgent)
+        {
+            return IsValidUserAgentToObey(Encoding.UTF8.GetBytes(userAgent));
+        }
     }
 }
