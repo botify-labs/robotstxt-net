@@ -120,7 +120,7 @@ namespace RobotsTxt
             }
         }
 
-        internal static ReadOnlySpan<byte> MaybeEscapePattern(ReadOnlySpan<byte> src)
+        public static ReadOnlySpan<byte> MaybeEscapePattern(ReadOnlySpan<byte> src)
         {
             int numToEscape = 0;
             bool needCapitalize = false;
