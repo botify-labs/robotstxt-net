@@ -163,7 +163,7 @@ namespace RobotsTxt
         {
         }
 
-        private void InitUserAgentsAndPath(List<string> userAgents, string path)
+        private void InitUserAgentsAndPath(List<string> userAgents, byte[] path)
         {
             _userAgents = new List<byte[]>(userAgents.Count);
             foreach (var ua in userAgents)
@@ -171,8 +171,8 @@ namespace RobotsTxt
                 _userAgents.Add(Encoding.UTF8.GetBytes(ua));
             }
 
-            Debug.Assert(path.StartsWith("/"));
-            _path = Encoding.UTF8.GetBytes(path);
+            Debug.Assert(path.Length > 0 && path[0] == '/');
+            _path = path;
         }
 
         private bool SeenAnyAgent => _seenGlobalAgent || _seenSpecificAgent;
@@ -182,6 +182,11 @@ namespace RobotsTxt
             // The url is not normalized (escaped, percent encoded) here because the user
             // is asked to provide it in escaped form already.
             var path = GetPathParamsQuery(url);
+            return PathAllowedByRobots(robotsBody, userAgents, new UTF8Encoding().GetBytes(path));
+        }
+
+        public bool PathAllowedByRobots(byte[] robotsBody, List<string> userAgents, byte[] path)
+        {
             InitUserAgentsAndPath(userAgents, path);
             ParseRobotsTxt(robotsBody, this);
             return !Disallow();
