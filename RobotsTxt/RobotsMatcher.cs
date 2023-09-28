@@ -229,7 +229,10 @@ namespace RobotsTxt
         {
             var searchStart = 0;
             if (url.Length >= 2 && url[0] == '/' && url[1] == '/') searchStart = 2;
-            var earlyPath = url.IndexOfAny(new[] { '/', '?', ';' }, searchStart);
+            var earlyPath = url.IndexOfAny(new[]
+            {
+                '/', '?', ';'
+            }, searchStart);
             var protocolEnd = url.IndexOf("://", searchStart, StringComparison.Ordinal);
             if (earlyPath < protocolEnd)
             {
@@ -245,7 +248,10 @@ namespace RobotsTxt
                 protocolEnd += 3;
             }
 
-            var pathStart = url.IndexOfAny(new[] { '/', '?', ';' }, protocolEnd);
+            var pathStart = url.IndexOfAny(new[]
+            {
+                '/', '?', ';'
+            }, protocolEnd);
             if (pathStart != -1)
             {
                 var hashPos = url.IndexOf('#', searchStart);
@@ -292,7 +298,7 @@ namespace RobotsTxt
         // match scores.
         class MatchHierarchy
         {
-            public readonly Match Global = new Match(); // Match for '*'
+            public readonly Match Global = new Match();   // Match for '*'
             public readonly Match Specific = new Match(); // Match for queried agent.
 
 
@@ -303,13 +309,13 @@ namespace RobotsTxt
             }
         }
 
-        readonly MatchHierarchy _allow = new MatchHierarchy(); // Characters of 'url' matching Allow.
+        readonly MatchHierarchy _allow = new MatchHierarchy();    // Characters of 'url' matching Allow.
         readonly MatchHierarchy _disallow = new MatchHierarchy(); // Characters of 'url' matching Disallow.
 
-        bool _seenGlobalAgent; // True if processing global agent rules.
-        bool _seenSpecificAgent; // True if processing our specific agent.
+        bool _seenGlobalAgent;       // True if processing global agent rules.
+        bool _seenSpecificAgent;     // True if processing our specific agent.
         bool _everSeenSpecificAgent; // True if we ever saw a block for our agent.
-        bool _seenSeparator; // True if saw any key: value pair.
+        bool _seenSeparator;         // True if saw any key: value pair.
 
         // The path we want to pattern match. Set by InitUserAgentsAndPath.
         byte[]? _path;
@@ -317,7 +323,10 @@ namespace RobotsTxt
 
         public bool OneAgentAllowedByRobots(byte[] robotsContent, string userAgent, string url)
         {
-            var userAgents = new List<string> { userAgent };
+            var userAgents = new List<string>
+            {
+                userAgent
+            };
             return AllowedByRobots(robotsContent, userAgents, url);
         }
 
