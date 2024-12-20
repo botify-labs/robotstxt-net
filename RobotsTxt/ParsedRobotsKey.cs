@@ -1,5 +1,5 @@
+using System;
 using System.Diagnostics;
-using System.Text;
 
 namespace RobotsTxt
 {
@@ -10,7 +10,7 @@ namespace RobotsTxt
 
         public enum KeyType
         {
-            // Generic highlevel fields.
+            // Generic high level fields.
             UserAgent,
             Sitemap,
 

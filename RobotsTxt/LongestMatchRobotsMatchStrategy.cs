@@ -1,4 +1,6 @@
-﻿namespace RobotsTxt
+﻿using System;
+
+namespace RobotsTxt
 {
 
     /// <summary>

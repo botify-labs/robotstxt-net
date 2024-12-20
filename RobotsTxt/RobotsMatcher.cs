@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
@@ -163,21 +165,16 @@ namespace RobotsTxt
         {
         }
 
-        private void InitUserAgentsAndPath(List<string> userAgents, byte[] path)
+        private void InitUserAgentsAndPath(List<byte[]> userAgents, byte[] path)
         {
-            _userAgents = new List<byte[]>(userAgents.Count);
-            foreach (var ua in userAgents)
-            {
-                _userAgents.Add(Encoding.UTF8.GetBytes(ua));
-            }
-
+            _userAgents = userAgents;
             Debug.Assert(path.Length > 0 && path[0] == '/');
             _path = path;
         }
 
         private bool SeenAnyAgent => _seenGlobalAgent || _seenSpecificAgent;
 
-        public bool AllowedByRobots(byte[] robotsBody, List<string> userAgents, string url)
+        public bool AllowedByRobots(byte[] robotsBody, List<byte[]> userAgents, string url)
         {
             // The url is not normalized (escaped, percent encoded) here because the user
             // is asked to provide it in escaped form already.
@@ -185,7 +182,7 @@ namespace RobotsTxt
             return PathAllowedByRobots(robotsBody, userAgents, new UTF8Encoding().GetBytes(path));
         }
 
-        public bool PathAllowedByRobots(byte[] robotsBody, List<string> userAgents, byte[] path)
+        public bool PathAllowedByRobots(byte[] robotsBody, List<byte[]> userAgents, byte[] path)
         {
             InitUserAgentsAndPath(userAgents, path);
             ParseRobotsTxt(robotsBody, this);
@@ -313,9 +310,9 @@ namespace RobotsTxt
         byte[]? _path;
         private List<byte[]>? _userAgents; // Set by InitUserAgentsAndPath.
 
-        public bool OneAgentAllowedByRobots(byte[] robotsContent, string userAgent, string url)
+        public bool OneAgentAllowedByRobots(byte[] robotsContent, byte[] userAgent, string url)
         {
-            var userAgents = new List<string> { userAgent };
+            var userAgents = new List<byte[]> { userAgent, };
             return AllowedByRobots(robotsContent, userAgents, url);
         }
 
