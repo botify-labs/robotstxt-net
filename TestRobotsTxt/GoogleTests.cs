@@ -10,7 +10,7 @@ namespace TestRobotsTxt
         bool IsUserAgentAllowed(string robotsTxt, string userAgent, string url)
         {
             RobotsMatcher matcher = new RobotsMatcher();
-            return matcher.OneAgentAllowedByRobots(Encoding.UTF8.GetBytes(robotsTxt), userAgent, url);
+            return matcher.OneAgentAllowedByRobots(Encoding.UTF8.GetBytes(robotsTxt), new UTF8Encoding().GetBytes(userAgent), url);
         }
 
         // Google-specific: system test.
@@ -940,7 +940,7 @@ namespace TestRobotsTxt
             var part1 = Encoding.UTF8.GetBytes("User-Agent: foo\n");
             byte[] bom = { 0xEF, 0xBB, 0xBF };
             var part2 = Encoding.UTF8.GetBytes("Allow: /AnyValue\n");
-            
+
             var ms = new MemoryStream();
             ms.Write(part1, 0, part1.Length);
             ms.Write(bom, 0, bom.Length);

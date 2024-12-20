@@ -1,5 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Text;
+
 using RobotsTxt;
 
 var filename = args.Length > 0 ? args[0] : "";
@@ -18,7 +20,7 @@ if (args.Length != 3)
 
 var robotsContent = File.ReadAllBytes(filename);
 var userAgent = args[1];
-var userAgents = new List<string> { userAgent };
+var userAgents = new List<byte[]> { new UTF8Encoding().GetBytes(userAgent) };
 
 var matcher = new RobotsMatcher();
 var url = args[2];

@@ -1,11 +1,11 @@
-using System.Text;
+using System;
 
 namespace RobotsTxt
 {
     public class RobotsTxtParser
     {
         static readonly byte[] UtfBom = { 0xEF, 0xBB, 0xBF };
-        static readonly byte[] HexDigits = Encoding.ASCII.GetBytes("0123456789ABCDEF");
+        static readonly byte[] HexDigits = "0123456789ABCDEF"u8.ToArray();
 
         public void Parse()
         {

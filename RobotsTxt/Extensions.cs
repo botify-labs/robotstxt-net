@@ -1,3 +1,5 @@
+using System;
+
 namespace RobotsTxt
 {
     public static class MyExtensions
