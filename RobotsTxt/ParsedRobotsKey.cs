@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics;
 
 namespace RobotsTxt
@@ -51,31 +50,31 @@ namespace RobotsTxt
 
         private bool KeyIsSitemap(ReadOnlySpan<byte> key)
         {
-            return key.StartsWithIgnoreCase("sitemap") ||
-                   key.StartsWithIgnoreCase("site-map");
+            return key.StartsWithIgnoreCase("sitemap"u8) ||
+                   key.StartsWithIgnoreCase("site-map"u8);
         }
 
         private bool KeyIsDisallow(ReadOnlySpan<byte> key)
         {
             return (
-                key.StartsWithIgnoreCase("disallow") ||
-                (AllowFrequentTypos && (key.StartsWithIgnoreCase("dissallow") ||
-                                        key.StartsWithIgnoreCase("dissalow") ||
-                                        key.StartsWithIgnoreCase("disalow") ||
-                                        key.StartsWithIgnoreCase("diasllow") ||
-                                        key.StartsWithIgnoreCase("disallaw"))));
+                key.StartsWithIgnoreCase("disallow"u8) ||
+                (AllowFrequentTypos && (key.StartsWithIgnoreCase("dissallow"u8) ||
+                                        key.StartsWithIgnoreCase("dissalow"u8) ||
+                                        key.StartsWithIgnoreCase("disalow"u8) ||
+                                        key.StartsWithIgnoreCase("diasllow"u8) ||
+                                        key.StartsWithIgnoreCase("disallaw"u8))));
         }
 
         private bool KeyIsAllow(ReadOnlySpan<byte> key)
         {
-            return key.StartsWithIgnoreCase("allow");
+            return key.StartsWithIgnoreCase("allow"u8);
         }
 
         private bool KeyIsUserAgent(ReadOnlySpan<byte> key)
         {
-            return key.StartsWithIgnoreCase("user-agent") ||
-                   (AllowFrequentTypos && (key.StartsWithIgnoreCase("useragent") ||
-                                           key.StartsWithIgnoreCase("user agent")));
+            return key.StartsWithIgnoreCase("user-agent"u8) ||
+                   (AllowFrequentTypos && (key.StartsWithIgnoreCase("useragent"u8) ||
+                                           key.StartsWithIgnoreCase("user agent"u8)));
         }
 
 

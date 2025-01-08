@@ -1,10 +1,8 @@
-using System;
-
 namespace RobotsTxt
 {
-    public class RobotsTxtParser
+    public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
     {
-        static readonly byte[] UtfBom = { 0xEF, 0xBB, 0xBF };
+        static readonly byte[] UtfBom = [0xEF, 0xBB, 0xBF];
         static readonly byte[] HexDigits = "0123456789ABCDEF"u8.ToArray();
 
         public void Parse()
@@ -21,9 +19,9 @@ namespace RobotsTxt
             var lineNum = 0;
             var bomPos = 0;
             bool lastWasCarriageReturn = false;
-            _handler.HandleRobotsStart();
+            handler.HandleRobotsStart();
 
-            foreach (var ch in _robotsBody)
+            foreach (var ch in robotsBody)
             {
                 // Google-specific optimization: UTF-8 byte order marks should never
                 // appear in a robots.txt file, but they do nevertheless. Skipping
@@ -62,16 +60,7 @@ namespace RobotsTxt
 
             var spanLeft = lineBuffer.AsSpan(0, linePos);
             ParseAndEmitLine(++lineNum, spanLeft);
-            _handler.HandleRobotsEnd();
-        }
-
-        private readonly byte[] _robotsBody;
-        private readonly IRobotsParseHandler _handler;
-
-        public RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
-        {
-            _robotsBody = robotsBody;
-            _handler = handler;
+            handler.HandleRobotsEnd();
         }
 
         void ParseAndEmitLine(int currentLine, ReadOnlySpan<byte> line)
@@ -86,16 +75,15 @@ namespace RobotsTxt
             if (NeedEscapeValueForKey(key))
             {
                 var escapedValue = MaybeEscapePattern(value);
-                EmitKeyValueToHandler(currentLine, key, escapedValue, _handler);
+                EmitKeyValueToHandler(currentLine, key, escapedValue);
             }
             else
             {
-                EmitKeyValueToHandler(currentLine, key, value, _handler);
+                EmitKeyValueToHandler(currentLine, key, value);
             }
         }
 
-        private void EmitKeyValueToHandler(int currentLine, ParsedRobotsKey key, ReadOnlySpan<byte> value,
-            IRobotsParseHandler handler)
+        private void EmitKeyValueToHandler(int currentLine, ParsedRobotsKey key, ReadOnlySpan<byte> value)
         {
             switch (key.Type)
             {

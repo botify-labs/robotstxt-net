@@ -1,5 +1,3 @@
-using System;
-
 namespace RobotsTxt
 {
     public static class MyExtensions
@@ -28,7 +26,7 @@ namespace RobotsTxt
             return true;
         }
 
-        public static bool StartsWithIgnoreCase(this ReadOnlySpan<byte> span, string value)
+        public static bool StartsWithIgnoreCase(this ReadOnlySpan<byte> span, ReadOnlySpan<byte> value)
         {
             if (span.Length < value.Length)
             {
@@ -42,8 +40,8 @@ namespace RobotsTxt
                 if ('A' <= c1 && c1 <= 'Z')
                     c1 += 32;
                 if ('A' <= c2 && c2 <= 'Z')
-                    c2 += ' ';
-                if (c1 != (byte)c2)
+                    c2 += (byte)' ';
+                if (c1 != c2)
                 {
                     return false;
                 }

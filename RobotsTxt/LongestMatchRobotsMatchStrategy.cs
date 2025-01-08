@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace RobotsTxt
+﻿namespace RobotsTxt
 {
 
     /// <summary>

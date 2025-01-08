@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 
@@ -224,7 +222,7 @@ namespace RobotsTxt
         {
             var searchStart = 0;
             if (url is ['/', '/', ..]) searchStart = 2;
-            var earlyPath = url.IndexOfAny(new[] { '/', '?', ';' }, searchStart);
+            var earlyPath = url.IndexOfAny(['/', '?', ';',], searchStart);
             var protocolEnd = url.IndexOf("://", searchStart, StringComparison.Ordinal);
             if (earlyPath < protocolEnd)
             {
@@ -240,7 +238,7 @@ namespace RobotsTxt
                 protocolEnd += 3;
             }
 
-            var pathStart = url.IndexOfAny(new[] { '/', '?', ';' }, protocolEnd);
+            var pathStart = url.IndexOfAny(['/', '?', ';',], protocolEnd);
             if (pathStart != -1)
             {
                 var hashPos = url.IndexOf('#', searchStart);
@@ -258,15 +256,9 @@ namespace RobotsTxt
             return "/";
         }
 
-        class Match
+        class Match(int priority = Match.NoMatchPriority, int line = 0)
         {
             private const int NoMatchPriority = -1;
-
-            public Match(int priority = NoMatchPriority, int line = 0)
-            {
-                Priority = priority;
-                Line = line;
-            }
 
             public void Set(int priority, int line)
             {
@@ -279,8 +271,8 @@ namespace RobotsTxt
                 Set(NoMatchPriority, 0);
             }
 
-            public int Priority { get; private set; }
-            public int Line { get; private set; }
+            public int Priority { get; private set; } = priority;
+            public int Line { get; private set; } = line;
         }
 
         // For each of the directives within user-agents, we keep global and specific
