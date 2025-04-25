@@ -82,7 +82,7 @@ namespace RobotsTxt
             }
         }
 
-        readonly byte[] _indexHtmBytes = Encoding.ASCII.GetBytes("/index.htm");
+        readonly byte[] _indexHtmBytes = "/index.htm"u8.ToArray();
 
         public void HandleAllow(int lineNum, ReadOnlySpan<byte> value)
         {
