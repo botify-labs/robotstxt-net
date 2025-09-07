@@ -90,7 +90,7 @@ namespace RobotsTxt
                 return;
             Debug.Assert(_allow != null);
             _seenSeparator = true;
-            var priority = LongestMatchRobotsMatchStrategy.MatchAllow(_path, value);
+            var priority = LongestMatchRobotsMatchStrategy.MatchAllowSlow(_path, value);
             if (priority >= 0)
             {
                 if (_seenSpecificAgent)
@@ -98,7 +98,7 @@ namespace RobotsTxt
                     Debug.Assert(_allow.Specific != null);
                     if (_allow.Specific.Priority < priority)
                     {
-                        _allow.Specific.Set(priority, lineNum);
+                        _allow.Specific.Set(priority);
                     }
                 }
                 else
@@ -107,7 +107,7 @@ namespace RobotsTxt
                     Debug.Assert(_allow.Global != null);
                     if (_allow.Global.Priority < priority)
                     {
-                        _allow.Global.Set(priority, lineNum);
+                        _allow.Global.Set(priority);
                     }
                 }
             }
@@ -134,14 +134,14 @@ namespace RobotsTxt
             if (!SeenAnyAgent)
                 return;
             _seenSeparator = true;
-            var priority = LongestMatchRobotsMatchStrategy.MatchDisallow(_path, value);
+            var priority = LongestMatchRobotsMatchStrategy.MatchDisallowSlow(_path, value);
             if (priority >= 0)
             {
                 if (_seenSpecificAgent)
                 {
                     if (_disallow.Specific.Priority < priority)
                     {
-                        _disallow.Specific.Set(priority, lineNum);
+                        _disallow.Specific.Set(priority);
                     }
                 }
                 else
@@ -149,7 +149,7 @@ namespace RobotsTxt
                     Debug.Assert(_seenGlobalAgent);
                     if (_disallow.Global.Priority < priority)
                     {
-                        _disallow.Global.Set(priority, lineNum);
+                        _disallow.Global.Set(priority);
                     }
                 }
             }
@@ -256,23 +256,21 @@ namespace RobotsTxt
             return "/";
         }
 
-        class Match(int priority = Match.NoMatchPriority, int line = 0)
+        private class Match(int priority = Match.NoMatchPriority)
         {
             private const int NoMatchPriority = -1;
 
-            public void Set(int priority, int line)
+            public void Set(int priority)
             {
                 Priority = priority;
-                Line = line;
             }
 
             public void Clear()
             {
-                Set(NoMatchPriority, 0);
+                Set(NoMatchPriority);
             }
 
             public int Priority { get; private set; } = priority;
-            public int Line { get; private set; } = line;
         }
 
         // For each of the directives within user-agents, we keep global and specific
@@ -308,11 +306,11 @@ namespace RobotsTxt
             return AllowedByRobots(robotsContent, userAgents, url);
         }
 
-        internal static bool IsValidUserAgentToObey(Span<byte> userAgent)
+        public static bool IsValidUserAgentToObey(Span<byte> userAgent)
         {
             return userAgent.Length > 0 && ExtractUserAgent(userAgent) == userAgent;
         }
-        internal static bool IsValidUserAgentToObey(string userAgent)
+        public static bool IsValidUserAgentToObey(string userAgent)
         {
             return IsValidUserAgentToObey(Encoding.UTF8.GetBytes(userAgent));
         }

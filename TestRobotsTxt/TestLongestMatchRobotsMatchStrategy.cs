@@ -1,5 +1,7 @@
 ﻿using System.Text;
+
 using Xunit;
+
 using RobotsTxt;
 
 namespace TestRobotsTxt
@@ -22,9 +24,17 @@ namespace TestRobotsTxt
         public void TestMatch(string path, string pattern, bool expected)
         {
             var actual =
-                LongestMatchRobotsMatchStrategy.Matches(
+                LongestMatchRobotsMatchStrategy.MatchesSlow(
                     Encoding.UTF8.GetBytes(path),
                     Encoding.UTF8.GetBytes(pattern)
+                );
+            Assert.Equal(expected, actual);
+            var haveWildcards = pattern.Length >= 1 && (pattern.Contains('*') || pattern[^1] == '$');
+            actual =
+                LongestMatchRobotsMatchStrategy.MatchesFast(
+                    Encoding.UTF8.GetBytes(path),
+                    Encoding.UTF8.GetBytes(pattern),
+                    haveWildcards
                 );
             Assert.Equal(expected, actual);
         }

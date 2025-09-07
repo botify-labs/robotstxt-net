@@ -1,4 +1,6 @@
-﻿namespace RobotsTxt
+﻿using System.Runtime.CompilerServices;
+
+namespace RobotsTxt
 {
 
     /// <summary>
@@ -17,17 +19,17 @@
     /// </summary>
     internal static class LongestMatchRobotsMatchStrategy
     {
-        internal static int MatchAllow(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
+        internal static int MatchAllowSlow(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
         {
-            return Matches(path, pattern) ? pattern.Length : -1;
+            return MatchesSlow(path, pattern) ? pattern.Length : -1;
         }
 
-        internal static int MatchDisallow(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
+        internal static int MatchDisallowSlow(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
         {
-            return Matches(path, pattern) ? pattern.Length : -1;
+            return MatchesSlow(path, pattern) ? pattern.Length : -1;
         }
 
-        internal static bool Matches(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
+        internal static bool MatchesSlow(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
         {
             var pathlen = path.Length;
             var pos = new int[pathlen + 1];
@@ -63,6 +65,73 @@
 
                     numpos = newnumpos;
                     if (numpos == 0) return false;
+                }
+            }
+
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int MatchAllowFast(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern, bool haveWildcards)
+        {
+            return MatchesFast(path, pattern, haveWildcards) ? pattern.Length : -1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int MatchDisallowFast(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern, bool haveWildcards)
+        {
+            return MatchesFast(path, pattern, haveWildcards) ? pattern.Length : -1;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool MatchesFast(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern, bool haveWildcards)
+        {
+            if (pattern.Length == 0) return true;
+            if (path.Length == 0) return pattern.Length == 0;
+
+            if (!haveWildcards)
+            {
+                return path.IndexOf(pattern) != -1;
+            }
+
+            Span<int> pos = stackalloc int[path.Length + 1];
+            int numpos = 1;
+
+            for (var j = 0; j < pattern.Length; j++)
+            {
+                var ch = pattern[j];
+
+                // Check for end anchor
+                if (ch == '$' && j + 1 == pattern.Length)
+                {
+                    return pos[numpos - 1] == path.Length;
+                }
+
+                if (ch == '*')
+                {
+                    int startPos = pos[0];
+                    numpos = path.Length - startPos + 1;
+
+                    for (int i = 0; i < numpos; i++)
+                    {
+                        pos[i] = startPos + i;
+                    }
+                }
+                else
+                {
+                    int newnumpos = 0;
+                    int pathLen = path.Length;
+
+                    for (int i = 0; i < numpos && pos[i] < pathLen; i++)
+                    {
+                        if (path[pos[i]] == ch)
+                        {
+                            pos[newnumpos++] = pos[i] + 1;
+                        }
+                    }
+
+                    if (newnumpos == 0) return false;
+                    numpos = newnumpos;
                 }
             }
 
