@@ -1,93 +1,91 @@
 using System.Diagnostics;
 
-namespace RobotsTxt
+namespace RobotsTxt;
+
+internal class ParsedRobotsKey
 {
-    class ParsedRobotsKey
+    private byte[]? _keyText;
+    private const bool AllowFrequentTypos = true;
+
+    public enum KeyType
     {
-        private byte[]? _keyText;
-        const bool AllowFrequentTypos = true;
+        // Generic high level fields.
+        UserAgent,
+        Sitemap,
 
-        public enum KeyType
+        // Fields within a user-agent.
+        Allow,
+        Disallow,
+
+        // Unrecognized field; kept as-is. High number so that additions to the
+        // enumeration above does not change the serialization.
+        Unknown = 128,
+    }
+
+    public void Parse(ReadOnlySpan<byte> key)
+    {
+        _keyText = null;
+        if (KeyIsUserAgent(key))
         {
-            // Generic high level fields.
-            UserAgent,
-            Sitemap,
-
-            // Fields within a user-agent.
-            Allow,
-            Disallow,
-
-            // Unrecognized field; kept as-is. High number so that additions to the
-            // enumeration above does not change the serialization.
-            Unknown = 128,
-        };
-
-        public void Parse(ReadOnlySpan<byte> key)
-        {
-            _keyText = null;
-            if (KeyIsUserAgent(key))
-            {
-                Type = KeyType.UserAgent;
-            }
-            else if (KeyIsAllow(key))
-            {
-                Type = KeyType.Allow;
-            }
-            else if (KeyIsDisallow(key))
-            {
-                Type = KeyType.Disallow;
-            }
-            else if (KeyIsSitemap(key))
-            {
-                Type = KeyType.Sitemap;
-            }
-            else
-            {
-                Type = KeyType.Unknown;
-                UnknownText = key.ToArray();
-            }
+            Type = KeyType.UserAgent;
         }
-
-        private bool KeyIsSitemap(ReadOnlySpan<byte> key)
+        else if (KeyIsAllow(key))
         {
-            return key.StartsWithIgnoreCase("sitemap"u8) ||
-                   key.StartsWithIgnoreCase("site-map"u8);
+            Type = KeyType.Allow;
         }
-
-        private bool KeyIsDisallow(ReadOnlySpan<byte> key)
+        else if (KeyIsDisallow(key))
         {
-            return (
-                key.StartsWithIgnoreCase("disallow"u8) ||
-                (AllowFrequentTypos && (key.StartsWithIgnoreCase("dissallow"u8) ||
-                                        key.StartsWithIgnoreCase("dissalow"u8) ||
-                                        key.StartsWithIgnoreCase("disalow"u8) ||
-                                        key.StartsWithIgnoreCase("diasllow"u8) ||
-                                        key.StartsWithIgnoreCase("disallaw"u8))));
+            Type = KeyType.Disallow;
         }
-
-        private bool KeyIsAllow(ReadOnlySpan<byte> key)
+        else if (KeyIsSitemap(key))
         {
-            return key.StartsWithIgnoreCase("allow"u8);
+            Type = KeyType.Sitemap;
         }
-
-        private bool KeyIsUserAgent(ReadOnlySpan<byte> key)
+        else
         {
-            return key.StartsWithIgnoreCase("user-agent"u8) ||
-                   (AllowFrequentTypos && (key.StartsWithIgnoreCase("useragent"u8) ||
-                                           key.StartsWithIgnoreCase("user agent"u8)));
+            Type = KeyType.Unknown;
+            UnknownText = key.ToArray();
         }
+    }
+
+    private static bool KeyIsSitemap(ReadOnlySpan<byte> key)
+    {
+        return key.StartsWithIgnoreCase("sitemap"u8) ||
+               key.StartsWithIgnoreCase("site-map"u8);
+    }
+
+    private static bool KeyIsDisallow(ReadOnlySpan<byte> key)
+    {
+        return key.StartsWithIgnoreCase("disallow"u8) ||
+               (AllowFrequentTypos && (key.StartsWithIgnoreCase("dissallow"u8) ||
+                                       key.StartsWithIgnoreCase("dissalow"u8) ||
+                                       key.StartsWithIgnoreCase("disalow"u8) ||
+                                       key.StartsWithIgnoreCase("diasllow"u8) ||
+                                       key.StartsWithIgnoreCase("disallaw"u8)));
+    }
+
+    private static bool KeyIsAllow(ReadOnlySpan<byte> key)
+    {
+        return key.StartsWithIgnoreCase("allow"u8);
+    }
+
+    private static bool KeyIsUserAgent(ReadOnlySpan<byte> key)
+    {
+        return key.StartsWithIgnoreCase("user-agent"u8) ||
+               (AllowFrequentTypos && (key.StartsWithIgnoreCase("useragent"u8) ||
+                                       key.StartsWithIgnoreCase("user agent"u8)));
+    }
 
 
-        public KeyType Type { get; private set; } = KeyType.Unknown;
+    public KeyType Type { get; private set; } = KeyType.Unknown;
 
-        public byte[]? UnknownText
+    public byte[]? UnknownText
+    {
+        get
         {
-            get
-            {
-                Debug.Assert(Type == KeyType.Unknown);
-                return _keyText;
-            }
-            private set => _keyText = value;
+            Debug.Assert(Type == KeyType.Unknown);
+            return _keyText;
         }
+        private set => _keyText = value;
     }
 }
