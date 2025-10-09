@@ -2,6 +2,20 @@ namespace RobotsTxt;
 
 public static class MyExtensions
 {
+#if !NETCOREAPP
+    public static bool Contains(this ReadOnlySpan<byte> self, byte other)
+    {
+        foreach (var c in self)
+        {
+            if (c == other)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+#endif
+
     public static bool EqualsIgnoreCase(this ReadOnlySpan<byte> self, ReadOnlySpan<byte> other)
     {
         if (self.Length != other.Length)

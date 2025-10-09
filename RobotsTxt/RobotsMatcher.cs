@@ -243,7 +243,11 @@ public class RobotsMatcher : IRobotsParseHandler
         return url[pathStart] != '/'
             ?
             // Prepend a slash if the result would start e.g. with '?'.
+#if !NETCOREAPP
+            "/" + url.Substring(pathStart, pathEnd - pathStart)
+#else
             string.Concat("/", url.AsSpan(pathStart, pathEnd - pathStart))
+#endif
             : url.Substring(pathStart, pathEnd - pathStart);
     }
 
