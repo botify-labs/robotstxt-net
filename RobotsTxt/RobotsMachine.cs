@@ -25,8 +25,13 @@ public class RobotsMachine : IRobotsParseHandler
     private readonly List<State> _globalStates = [];
     private readonly List<State> _specificStates = [];
 
-    private bool _currentAgentIsSpecific; // True if we're in a block for our agent.
-    private bool EverSeenSpecificAgent => _specificStates.Count > 0;
+    private bool _seenSpecificAgent; // True if we're in a block for our agent.
+    private bool _seenGlobalAgent; // True if we're in a block for global agent.
+    private bool _everSeenSpecificAgent; // True if we ever saw a block for our agent.
+    private bool _seenSeparator; // True if saw any key: value pair (key: allow/disallow).
+
+    private bool CurrentAgentIsSignificant => _seenSpecificAgent || _seenGlobalAgent;
+    private bool SeenAnyAgent => _everSeenSpecificAgent || _globalStates.Count > 0;
 
     public RobotsMachine(byte[] robotsBody, List<byte[]> userAgents)
     {
@@ -66,12 +71,18 @@ public class RobotsMachine : IRobotsParseHandler
 
     public void HandleUserAgent(int lineNum, ReadOnlySpan<byte> userAgent)
     {
+        if (_seenSeparator)
+        {
+            // Needed to handle a serie of User-Agent: lines containing our agent.
+            _seenSpecificAgent = _seenGlobalAgent = _seenSeparator = false;
+        }
+
         // Google-specific optimization: a '*' followed by space and more characters
         // in a user-agent record is still regarded a global rule.
         if (userAgent.Length >= 1 && userAgent[0] == '*' && (userAgent.Length == 1 || userAgent[1].IsSpace()))
         {
             _globalStates.Add(new UserAgentState());
-            _currentAgentIsSpecific = false;
+            _seenGlobalAgent = true;
             return;
         }
         userAgent = ExtractUserAgent(userAgent);
@@ -79,28 +90,34 @@ public class RobotsMachine : IRobotsParseHandler
         {
             if (!userAgent.EqualsIgnoreCase(ua)) continue;
             _specificStates.Add(new UserAgentState());
-            _currentAgentIsSpecific = true;
+            _everSeenSpecificAgent = _seenSpecificAgent = true;
             return;
         }
     }
 
-    private bool SeenAnyAgent => _specificStates.Count > 0 || _globalStates.Count > 0;
-
     public void HandleAllow(int lineNum, ReadOnlySpan<byte> value)
     {
-        if (!SeenAnyAgent)
+        if (!CurrentAgentIsSignificant)
             return;
-        var states = _currentAgentIsSpecific ? _specificStates : _globalStates;
+        _seenSeparator = true;
         var haveWildcards = value.Length >= 1 && (value.Contains((byte)'*') || value[^1] == '$');
-        states.Add(new AllowState(value.ToArray(), haveWildcards));
+        var state = new AllowState(value.ToArray(), haveWildcards);
+        if (_seenSpecificAgent)
+            _specificStates.Add(state);
+        if (_seenGlobalAgent)
+            _globalStates.Add(state);
     }
     public void HandleDisallow(int lineNum, ReadOnlySpan<byte> value)
     {
-        if (!SeenAnyAgent)
+        if (!CurrentAgentIsSignificant)
             return;
-        var states = _currentAgentIsSpecific ? _specificStates : _globalStates;
+        _seenSeparator = true;
         var haveWildcards = value.Length >= 1 && (value.Contains((byte)'*') || value[^1] == '$');
-        states.Add(new DisallowState(value.ToArray(), haveWildcards));
+        var state = new DisallowState(value.ToArray(), haveWildcards);
+        if (_seenSpecificAgent)
+            _specificStates.Add(state);
+        if (_seenGlobalAgent)
+            _globalStates.Add(state);
     }
 
     public void HandleSitemap(int lineNum, ReadOnlySpan<byte> value)
@@ -127,7 +144,7 @@ public class RobotsMachine : IRobotsParseHandler
             return disallowHierarchy.Priority > allowHierarchy.Priority;
         }
 
-        if (EverSeenSpecificAgent)
+        if (_everSeenSpecificAgent)
         {
             // Matching group for user-agent but either without disallow or empty one,
             // i.e. priority == 0.
