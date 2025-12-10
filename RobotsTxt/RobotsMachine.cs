@@ -4,6 +4,8 @@ namespace RobotsTxt;
 
 public class RobotsMachine : IRobotsParseHandler
 {
+    private const int NoMatchPriority = -1;
+
     private class State;
 
     private class UserAgentState : State;
@@ -122,9 +124,9 @@ public class RobotsMachine : IRobotsParseHandler
             return false;
 
         var (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _specificStates);
-        if (allowHierarchy.Priority > 0 || disallowHierarchy.Priority > 0)
+        if (allowHierarchy > 0 || disallowHierarchy > 0)
         {
-            return disallowHierarchy.Priority > allowHierarchy.Priority;
+            return disallowHierarchy > allowHierarchy;
         }
 
         if (EverSeenSpecificAgent)
@@ -136,53 +138,47 @@ public class RobotsMachine : IRobotsParseHandler
 
         (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _globalStates);
 
-        if (disallowHierarchy.Priority > 0 || allowHierarchy.Priority > 0)
+        if (disallowHierarchy > 0 || allowHierarchy > 0)
         {
-            return disallowHierarchy.Priority > allowHierarchy.Priority;
+            return disallowHierarchy > allowHierarchy;
         }
 
         return false;
     }
 
-    private static (Match, Match) AssessAccessRules(byte[] path, List<State> states)
+    private static (int, int) AssessAccessRules(byte[] path, List<State> states)
     {
-        Match allowHierarchy = new(); // Characters of 'url' matching Allow.
-        Match disallowHierarchy = new(); // Characters of 'url' matching Disallow.
+        var allowHierarchy = NoMatchPriority; // Characters of 'url' matching Allow.
+        var disallowHierarchy = NoMatchPriority; // Characters of 'url' matching Disallow.
+
         foreach (var state in states)
         {
             switch (state)
             {
                 case AllowState allow:
-                    CheckAllow(path, allow.Pattern, allow.HaveWildcards, allowHierarchy);
+                    allowHierarchy = CheckAllow(path, allow.Pattern, allow.HaveWildcards, allowHierarchy);
                     break;
                 case DisallowState disallow:
-                    CheckDisallow(path, disallow.Pattern, disallow.HaveWildcards, disallowHierarchy);
+                    disallowHierarchy = CheckDisallow(path, disallow.Pattern, disallow.HaveWildcards, disallowHierarchy);
                     break;
             }
         }
         return (allowHierarchy, disallowHierarchy);
     }
 
-    private class Match(int priority = Match.NoMatchPriority)
-    {
-        private const int NoMatchPriority = -1;
-
-        public int Priority { get; set; } = priority;
-    }
-
     private static readonly byte[] IndexHtmBytes = "/index.htm"u8.ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void CheckAllow(byte[] path, ReadOnlySpan<byte> pattern, bool haveWildcards, Match allow)
+    private static int CheckAllow(byte[] path, ReadOnlySpan<byte> pattern, bool haveWildcards, int allow)
     {
         while (true)
         {
             var priority = LongestMatchRobotsMatchStrategy.MatchAllowFast(path, pattern, haveWildcards);
             if (priority >= 0)
             {
-                if (allow.Priority < priority)
+                if (allow < priority)
                 {
-                    allow.Priority = priority;
+                    allow = priority;
                 }
             }
             else
@@ -204,16 +200,18 @@ public class RobotsMachine : IRobotsParseHandler
             }
             break;
         }
+        return allow;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void CheckDisallow(byte[] path, ReadOnlySpan<byte> value, bool haveWildcards, Match disallow)
+    private static int CheckDisallow(byte[] path, ReadOnlySpan<byte> value, bool haveWildcards, int disallow)
     {
         var priority = LongestMatchRobotsMatchStrategy.MatchDisallowFast(path, value, haveWildcards);
-        if (priority < 0) return;
-        if (disallow.Priority < priority)
+        if (priority < 0) return disallow;
+        if (disallow < priority)
         {
-            disallow.Priority = priority;
+            disallow = priority;
         }
+        return disallow;
     }
 }
