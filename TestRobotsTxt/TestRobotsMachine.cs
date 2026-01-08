@@ -8,8 +8,8 @@ namespace TestRobotsTxt;
 
 public class TestRobotsMachine
 {
-    private readonly byte[][] _robotsTxt = new byte[][]
-    {
+    private readonly byte[][] _robotsTxt =
+    [
         @"# ROW robots from TAS
 # update 08-12-2024 semi configs and login redirect blocked
 # Updated on 06-09-2023
@@ -419,15 +419,17 @@ Disallow: /b/*/*/*/*/N-*
 Disallow: /b/clearance/
 Allow: /b/clearance/Featured_Items--Clearance/clearance
 Sitemap: https://www.example.com/sitemap.xml"u8.ToArray(),
-    };
+    ];
 
     [Theory]
-    [InlineData(0, "/US/en/search/7423-31-6?focus=papers&page=1&perpage=30&sort=relevance&term=7423-31-6&type=citation_search", false)]
+    [InlineData(0,
+        "/US/en/search/7423-31-6?focus=papers&page=1&perpage=30&sort=relevance&term=7423-31-6&type=citation_search",
+        false)]
     [InlineData(1, "/", true)]
     public void Test1(int index, string path, bool expected)
     {
         var machine = new RobotsMachine(_robotsTxt[index],
-            ["botify"u8.ToArray(), "googlebot"u8.ToArray()]);
+            ["botify"u8.ToArray(), "googlebot"u8.ToArray(),]);
         var actual = machine.PathAllowedByRobots(Encoding.UTF8.GetBytes(path));
         Assert.Equal(expected, actual);
     }
