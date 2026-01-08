@@ -1011,6 +1011,7 @@ namespace TestRobotsTxt
         [InlineData("/a/b/c", "/a/b/c")]
         [InlineData("á", "%C3%A1")]
         [InlineData("%aa", "%AA")]
+        [InlineData("%ab%c", "%AB%c")]
         public void TestMaybeEscapePattern(string url, string expected)
         {
             var actual =
