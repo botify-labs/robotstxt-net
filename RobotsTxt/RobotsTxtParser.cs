@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace RobotsTxt;
 
 public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
@@ -74,8 +76,9 @@ public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
         key.Parse(stringKey);
         if (NeedEscapeValueForKey(key))
         {
-            var escapedValue = MaybeEscapePattern(value);
+            var escapedValue = MaybeEscapePattern(value, out var dst);
             EmitKeyValueToHandler(currentLine, key, escapedValue);
+            if (dst != null) ArrayPool<byte>.Shared.Return(dst);
         }
         else
         {
@@ -107,7 +110,7 @@ public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
         }
     }
 
-    public static ReadOnlySpan<byte> MaybeEscapePattern(ReadOnlySpan<byte> src)
+    public static ReadOnlySpan<byte> MaybeEscapePattern(ReadOnlySpan<byte> src, out byte[]? dst)
     {
         var numToEscape = 0;
         var needCapitalize = false;
@@ -131,10 +134,12 @@ public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
 
         if (numToEscape == 0 && !needCapitalize)
         {
+            dst = null;
             return src;
         }
 
-        var dst = new byte[numToEscape * 2 + src.Length];
+        dst = ArrayPool<byte>.Shared.Rent(numToEscape * 2 + src.Length);
+
         var j = 0;
         for (var i = 0; i < src.Length; i++)
         {

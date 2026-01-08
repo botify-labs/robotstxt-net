@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using RobotsTxt;
@@ -1015,8 +1016,9 @@ namespace TestRobotsTxt
         public void TestMaybeEscapePattern(string url, string expected)
         {
             var actual =
-                Encoding.ASCII.GetString(RobotsTxtParser.MaybeEscapePattern(Encoding.UTF8.GetBytes(url)).ToArray());
+                Encoding.ASCII.GetString(RobotsTxtParser.MaybeEscapePattern(Encoding.UTF8.GetBytes(url), out var dst).ToArray());
             Assert.Equal(expected, actual);
+            if (dst != null) ArrayPool<byte>.Shared.Return(dst);
         }
     }
 }
