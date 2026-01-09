@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 using RobotsTxt;
@@ -1011,11 +1012,15 @@ namespace TestRobotsTxt
         [InlineData("/a/b/c", "/a/b/c")]
         [InlineData("á", "%C3%A1")]
         [InlineData("%aa", "%AA")]
+        [InlineData("%ab%c", "%AB%c")]
+        [InlineData("test%", "test%")]
+        [InlineData("%a", "%a")]
         public void TestMaybeEscapePattern(string url, string expected)
         {
             var actual =
-                Encoding.ASCII.GetString(RobotsTxtParser.MaybeEscapePattern(Encoding.UTF8.GetBytes(url)).ToArray());
+                Encoding.ASCII.GetString(RobotsTxtParser.MaybeEscapePattern(Encoding.UTF8.GetBytes(url), out var dst).ToArray());
             Assert.Equal(expected, actual);
+            if (dst != null) ArrayPool<byte>.Shared.Return(dst);
         }
     }
 }

@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace RobotsTxt;
 
 public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
@@ -74,8 +76,9 @@ public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
         key.Parse(stringKey);
         if (NeedEscapeValueForKey(key))
         {
-            var escapedValue = MaybeEscapePattern(value);
+            var escapedValue = MaybeEscapePattern(value, out var dst);
             EmitKeyValueToHandler(currentLine, key, escapedValue);
+            if (dst != null) ArrayPool<byte>.Shared.Return(dst);
         }
         else
         {
@@ -107,7 +110,7 @@ public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
         }
     }
 
-    public static ReadOnlySpan<byte> MaybeEscapePattern(ReadOnlySpan<byte> src)
+    public static ReadOnlySpan<byte> MaybeEscapePattern(ReadOnlySpan<byte> src, out byte[]? dst)
     {
         var numToEscape = 0;
         var needCapitalize = false;
@@ -131,19 +134,22 @@ public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
 
         if (numToEscape == 0 && !needCapitalize)
         {
+            dst = null;
             return src;
         }
 
-        var dst = new byte[numToEscape * 2 + src.Length];
+        dst = ArrayPool<byte>.Shared.Rent(numToEscape * 2 + src.Length);
+
         var j = 0;
         for (var i = 0; i < src.Length; i++)
         {
             var c = src[i];
             if (c == '%' && i + 2 < src.Length && src[i + 1].IsXDigit() && src[i + 2].IsXDigit())
             {
-                dst[j++] = src[i++];
-                dst[j++] = src[i++].ToUpper();
-                dst[j++] = src[i++].ToUpper();
+                dst[j++] = (byte)'%';
+                dst[j++] = src[i + 1].ToUpper();
+                dst[j++] = src[i + 2].ToUpper();
+                i += 2;
             }
             else if (c >= 0x80)
             {
@@ -157,7 +163,7 @@ public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
             }
         }
 
-        return dst;
+        return dst.AsSpan(0, j);
     }
 
     private static bool NeedEscapeValueForKey(ParsedRobotsKey key)

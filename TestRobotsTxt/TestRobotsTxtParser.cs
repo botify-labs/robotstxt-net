@@ -1,5 +1,8 @@
+using System.Buffers;
 using System.Text;
+
 using RobotsTxt;
+
 using Xunit;
 
 namespace TestRobotsTxt
@@ -56,8 +59,9 @@ namespace TestRobotsTxt
         [InlineData("é", "%C3%A9")]
         public void TestMaybeEscapePattern(string src, string expected)
         {
-            var actual = RobotsTxtParser.MaybeEscapePattern(Encoding.UTF8.GetBytes(src));
+            var actual = RobotsTxtParser.MaybeEscapePattern(Encoding.UTF8.GetBytes(src), out var dst);
             Assert.Equal(expected, Encoding.UTF8.GetString(actual.ToArray()));
+            if (dst != null) ArrayPool<byte>.Shared.Return(dst);
         }
     }
 }
