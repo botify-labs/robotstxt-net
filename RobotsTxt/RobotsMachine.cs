@@ -10,15 +10,15 @@ public class RobotsMachine : IRobotsParseHandler
 
     private class UserAgentState : State;
 
-    private class AllowState(byte[] pattern, bool haveWildcards) : State
+    private class AllowState(ReadOnlyMemory<byte> pattern, bool haveWildcards) : State
     {
-        public byte[] Pattern { get; } = pattern;
+        public ReadOnlyMemory<byte> Pattern { get; } = pattern;
         public bool HaveWildcards { get; } = haveWildcards;
     }
 
-    private class DisallowState(byte[] pattern, bool haveWildcards) : State
+    private class DisallowState(ReadOnlyMemory<byte> pattern, bool haveWildcards) : State
     {
-        public byte[] Pattern { get; } = pattern;
+        public ReadOnlyMemory<byte> Pattern { get; } = pattern;
         public bool HaveWildcards { get; } = haveWildcards;
     }
 
@@ -90,7 +90,18 @@ public class RobotsMachine : IRobotsParseHandler
         userAgent = ExtractUserAgent(userAgent);
         foreach (var ua in _userAgents)
         {
-            if (!userAgent.EqualsIgnoreCase(ua)) continue;
+            if (userAgent.Length != ua.Length) continue;
+            bool match = true;
+            for (int i = 0; i < ua.Length; i++)
+            {
+                byte a = userAgent[i];
+                byte b = ua[i];
+                if (a == b || (a >= 'A' && a <= 'Z' && a + 32 == b) || (b >= 'A' && b <= 'Z' && b + 32 == a))
+                    continue;
+                match = false;
+                break;
+            }
+            if (!match) continue;
             _specificStates.Add(new UserAgentState());
             _everSeenSpecificAgent = _seenSpecificAgent = true;
             return;
@@ -132,51 +143,54 @@ public class RobotsMachine : IRobotsParseHandler
 
     public bool PathAllowedByRobots(byte[] path)
     {
-        return !Disallow(path);
+        return !Disallow();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        bool Disallow()
+        {
+            if (!SeenAnyAgent)
+                return false;
+
+            var (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _specificStates);
+            if (allowHierarchy > 0 || disallowHierarchy > 0)
+            {
+                return disallowHierarchy > allowHierarchy;
+            }
+
+            if (_everSeenSpecificAgent)
+            {
+                // Matching group for user-agent but either without disallow or empty one,
+                // i.e. priority == 0.
+                return false;
+            }
+
+            (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _globalStates);
+
+            if (disallowHierarchy > 0 || allowHierarchy > 0)
+            {
+                return disallowHierarchy > allowHierarchy;
+            }
+
+            return false;
+        }
     }
 
-    private bool Disallow(byte[] path)
-    {
-        if (!SeenAnyAgent)
-            return false;
-
-        var (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _specificStates);
-        if (allowHierarchy > 0 || disallowHierarchy > 0)
-        {
-            return disallowHierarchy > allowHierarchy;
-        }
-
-        if (_everSeenSpecificAgent)
-        {
-            // Matching group for user-agent but either without disallow or empty one,
-            // i.e. priority == 0.
-            return false;
-        }
-
-        (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _globalStates);
-
-        if (disallowHierarchy > 0 || allowHierarchy > 0)
-        {
-            return disallowHierarchy > allowHierarchy;
-        }
-
-        return false;
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static (int, int) AssessAccessRules(byte[] path, List<State> states)
     {
         var allowHierarchy = NoMatchPriority; // Characters of 'url' matching Allow.
         var disallowHierarchy = NoMatchPriority; // Characters of 'url' matching Disallow.
 
-        foreach (var state in states)
+        for (int i = 0; i < states.Count; i++)
         {
+            var state = states[i];
             switch (state)
             {
                 case AllowState allow:
-                    allowHierarchy = CheckAllow(path, allow.Pattern, allow.HaveWildcards, allowHierarchy);
+                    allowHierarchy = CheckAllow(path, allow.Pattern.Span, allow.HaveWildcards, allowHierarchy);
                     break;
                 case DisallowState disallow:
-                    disallowHierarchy = CheckDisallow(path, disallow.Pattern, disallow.HaveWildcards, disallowHierarchy);
+                    disallowHierarchy = CheckDisallow(path, disallow.Pattern.Span, disallow.HaveWildcards, disallowHierarchy);
                     break;
             }
         }
