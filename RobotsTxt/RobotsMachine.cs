@@ -204,7 +204,7 @@ public class RobotsMachine : IRobotsParseHandler
     {
         while (true)
         {
-            var priority = LongestMatchRobotsMatchStrategy.MatchAllowFast(path, pattern, haveWildcards);
+            var priority = LongestMatchRobotsMatchStrategy.MatchFast(path, pattern, haveWildcards);
             if (priority >= 0)
             {
                 if (allow < priority)
@@ -237,7 +237,7 @@ public class RobotsMachine : IRobotsParseHandler
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int CheckDisallow(byte[] path, ReadOnlySpan<byte> value, bool haveWildcards, int disallow)
     {
-        var priority = LongestMatchRobotsMatchStrategy.MatchDisallowFast(path, value, haveWildcards);
+        var priority = LongestMatchRobotsMatchStrategy.MatchFast(path, value, haveWildcards);
         if (priority < 0) return disallow;
         if (disallow < priority)
         {

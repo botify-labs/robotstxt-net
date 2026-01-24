@@ -9,19 +9,19 @@ namespace TestRobotsTxt
     public class TestsLongestMatchRobotsMatchStrategy
     {
         [Theory]
-        [InlineData("/", "/", true)]
-        [InlineData("/", "/$", true)]
-        [InlineData("a", "b", false)]
-        [InlineData("abcd", "a", true)]
-        [InlineData("abcd", "a$", false)]
-        [InlineData("abcd", "a*", true)]
-        [InlineData("abcd", "a*b", true)]
-        [InlineData("abcd", "a*c", true)]
-        [InlineData("abcd", "a*d", true)]
-        [InlineData("abcd", "a*d$", true)]
-        [InlineData("abcd", "a*c$", false)]
-        [InlineData("/abcd/e//fg/hij/k/lm/nop/q/r/", "/*/*/*/*/*/*/*/*/*/*/*", true)]
-        public void TestMatch(string path, string pattern, bool expected)
+        [InlineData("/", "/", true, 1)]
+        [InlineData("/", "/$", true, 2)]
+        [InlineData("a", "b", false, -1)]
+        [InlineData("abcd", "a", true, 1)]
+        [InlineData("abcd", "a$", false, -1)]
+        [InlineData("abcd", "a*", true, 2)]
+        [InlineData("abcd", "a*b", true, 3)]
+        [InlineData("abcd", "a*c", true, 3)]
+        [InlineData("abcd", "a*d", true, 3)]
+        [InlineData("abcd", "a*d$", true, 4)]
+        [InlineData("abcd", "a*c$", false, -1)]
+        [InlineData("/abcd/e//fg/hij/k/lm/nop/q/r/", "/*/*/*/*/*/*/*/*/*/*/*", true, 22)]
+        public void TestMatch(string path, string pattern, bool expected, int len)
         {
             var actual =
                 LongestMatchRobotsMatchStrategy.MatchesSlow(
@@ -30,13 +30,13 @@ namespace TestRobotsTxt
                 );
             Assert.Equal(expected, actual);
             var haveWildcards = pattern.Length >= 1 && (pattern.Contains('*') || pattern[^1] == '$');
-            actual =
-                LongestMatchRobotsMatchStrategy.MatchesFast(
+            var actualLen =
+                LongestMatchRobotsMatchStrategy.MatchFast(
                     Encoding.UTF8.GetBytes(path),
                     Encoding.UTF8.GetBytes(pattern),
                     haveWildcards
                 );
-            Assert.Equal(expected, actual);
+            Assert.Equal(len, actualLen);
         }
     }
 }
