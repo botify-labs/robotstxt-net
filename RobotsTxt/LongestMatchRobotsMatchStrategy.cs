@@ -71,10 +71,14 @@ internal static class LongestMatchRobotsMatchStrategy
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int MatchFast(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
+    internal static int MatchFast(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern, bool fastPath)
     {
         if (pattern.Length == 0) return 0;
         if (path.Length == 0) return -1;
+        if (fastPath)
+        {
+            return path.StartsWith(pattern) ? pattern.Length : -1;
+        }
         return Matches(path, pattern) ? pattern.Length : -1;
     }
 

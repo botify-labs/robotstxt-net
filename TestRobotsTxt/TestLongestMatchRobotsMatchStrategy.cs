@@ -30,9 +30,10 @@ namespace TestRobotsTxt
                     Encoding.UTF8.GetBytes(pattern)
                 );
             Assert.Equal(expected, actual);
+            var fastPath = !pattern.AsSpan().ContainsAny("*$");
             var actualLen =
                 LongestMatchRobotsMatchStrategy.MatchFast(Encoding.UTF8.GetBytes(path),
-                    Encoding.UTF8.GetBytes(pattern)
+                    Encoding.UTF8.GetBytes(pattern), fastPath
                 );
             Assert.Equal(len, actualLen);
             Assert.Equal(expected, actualLen >= 0);

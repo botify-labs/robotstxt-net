@@ -10,14 +10,16 @@ public class RobotsMachine : IRobotsParseHandler
 
     private class UserAgentState : State;
 
-    private class AllowState(ReadOnlyMemory<byte> pattern) : State
+    private class AllowState(ReadOnlyMemory<byte> pattern, bool fastPath) : State
     {
         public ReadOnlyMemory<byte> Pattern { get; } = pattern;
+        public bool FastPath { get; } = fastPath;
     }
 
-    private class DisallowState(ReadOnlyMemory<byte> pattern) : State
+    private class DisallowState(ReadOnlyMemory<byte> pattern, bool fastPath) : State
     {
         public ReadOnlyMemory<byte> Pattern { get; } = pattern;
+        public bool FastPath { get; } = fastPath;
     }
 
     private readonly List<byte[]> _userAgents;
@@ -112,6 +114,8 @@ public class RobotsMachine : IRobotsParseHandler
             return;
         _seenSeparator = true;
 
+        var fastPath = !value.ContainsAny("*$"u8);
+
         AllowState? rootState = null;
         // Google-specific optimization: 'index.htm' and 'index.html' are normalized
         // to '/'.
@@ -122,10 +126,10 @@ public class RobotsMachine : IRobotsParseHandler
             var newValue = new byte[len + 1];
             value[..len].CopyTo(newValue);
             newValue[len] = (byte)'$';
-            rootState = new AllowState(newValue);
+            rootState = new AllowState(newValue, false);
         }
 
-        var state = new AllowState(value.ToArray());
+        var state = new AllowState(value.ToArray(), fastPath);
         if (_seenSpecificAgent)
         {
             _specificStates.Add(state);
@@ -149,7 +153,9 @@ public class RobotsMachine : IRobotsParseHandler
         if (!CurrentAgentIsSignificant)
             return;
         _seenSeparator = true;
-        var state = new DisallowState(value.ToArray());
+
+        var fastPath = !value.ContainsAny("*$"u8);
+        var state = new DisallowState(value.ToArray(), fastPath);
         if (_seenSpecificAgent)
             _specificStates.Add(state);
         if (_seenGlobalAgent)
@@ -210,11 +216,10 @@ public class RobotsMachine : IRobotsParseHandler
             switch (state)
             {
                 case AllowState allow:
-                    allowHierarchy = Check(path, allow.Pattern.Span, allowHierarchy);
+                    allowHierarchy = Check(path, allow.Pattern.Span, allow.FastPath, allowHierarchy);
                     break;
                 case DisallowState disallow:
-                    disallowHierarchy = Check(path, disallow.Pattern.Span,
-                        disallowHierarchy);
+                    disallowHierarchy = Check(path, disallow.Pattern.Span, disallow.FastPath, disallowHierarchy);
                     break;
             }
         }
@@ -224,9 +229,9 @@ public class RobotsMachine : IRobotsParseHandler
     private static readonly byte[] IndexHtmBytes = "/index.htm"u8.ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int Check(byte[] path, ReadOnlySpan<byte> pattern, int currentPriority)
+    private static int Check(byte[] path, ReadOnlySpan<byte> pattern, bool fastPath, int currentPriority)
     {
-        var priority = LongestMatchRobotsMatchStrategy.MatchFast(path, pattern);
+        var priority = LongestMatchRobotsMatchStrategy.MatchFast(path, pattern, fastPath);
         if (priority < 0) return currentPriority;
         if (currentPriority < priority)
         {
