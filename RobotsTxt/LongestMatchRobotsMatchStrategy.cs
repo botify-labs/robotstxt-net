@@ -71,28 +71,19 @@ internal static class LongestMatchRobotsMatchStrategy
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int MatchAllowFast(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern, bool haveWildcards)
+    internal static int MatchFast(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern, bool isSimplePattern)
     {
-        return MatchesFast(path, pattern, haveWildcards) ? pattern.Length : -1;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static int MatchDisallowFast(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern, bool haveWildcards)
-    {
-        return MatchesFast(path, pattern, haveWildcards) ? pattern.Length : -1;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal static bool MatchesFast(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern, bool haveWildcards)
-    {
-        if (pattern.Length == 0) return true;
-        if (path.Length == 0) return pattern.Length == 0;
-
-        if (!haveWildcards)
+        if (pattern.Length == 0) return 0;
+        if (path.Length == 0) return -1;
+        if (isSimplePattern)
         {
-            return path.IndexOf(pattern) != -1;
+            return path.StartsWith(pattern) ? pattern.Length : -1;
         }
+        return Matches(path, pattern) ? pattern.Length : -1;
+    }
 
+    private static bool Matches(ReadOnlySpan<byte> path, ReadOnlySpan<byte> pattern)
+    {
         Span<int> pos = stackalloc int[path.Length + 1];
         var numpos = 1;
 

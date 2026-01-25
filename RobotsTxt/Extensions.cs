@@ -1,21 +1,7 @@
 namespace RobotsTxt;
 
-public static class MyExtensions
+internal static class MyExtensions
 {
-#if !NETCOREAPP
-    public static bool Contains(this ReadOnlySpan<byte> self, byte other)
-    {
-        foreach (var c in self)
-        {
-            if (c == other)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-#endif
-
     public static bool EqualsIgnoreCase(this ReadOnlySpan<byte> self, ReadOnlySpan<byte> other)
     {
         if (self.Length != other.Length)
@@ -27,6 +13,7 @@ public static class MyExtensions
         {
             var c1 = self[i];
             var c2 = other[i];
+            if (c1 == c2) continue;
             if ('A' <= c1 && c1 <= 'Z')
                 c1 += 32;
             if ('A' <= c2 && c2 <= 'Z')
@@ -51,6 +38,7 @@ public static class MyExtensions
         {
             var c1 = span[i];
             var c2 = value[i];
+            if (c1 == c2) continue;
             if ('A' <= c1 && c1 <= 'Z')
                 c1 += 32;
             if ('A' <= c2 && c2 <= 'Z')

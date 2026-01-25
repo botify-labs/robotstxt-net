@@ -10,16 +10,16 @@ public class RobotsMachine : IRobotsParseHandler
 
     private class UserAgentState : State;
 
-    private class AllowState(byte[] pattern, bool haveWildcards) : State
+    private class AllowState(ReadOnlyMemory<byte> pattern, bool isSimplePattern) : State
     {
-        public byte[] Pattern { get; } = pattern;
-        public bool HaveWildcards { get; } = haveWildcards;
+        public ReadOnlyMemory<byte> Pattern { get; } = pattern;
+        public bool IsSimplePattern { get; } = isSimplePattern;
     }
 
-    private class DisallowState(byte[] pattern, bool haveWildcards) : State
+    private class DisallowState(ReadOnlyMemory<byte> pattern, bool isSimplePattern) : State
     {
-        public byte[] Pattern { get; } = pattern;
-        public bool HaveWildcards { get; } = haveWildcards;
+        public ReadOnlyMemory<byte> Pattern { get; } = pattern;
+        public bool IsSimplePattern { get; } = isSimplePattern;
     }
 
     private readonly List<byte[]> _userAgents;
@@ -90,7 +90,18 @@ public class RobotsMachine : IRobotsParseHandler
         userAgent = ExtractUserAgent(userAgent);
         foreach (var ua in _userAgents)
         {
-            if (!userAgent.EqualsIgnoreCase(ua)) continue;
+            if (userAgent.Length != ua.Length) continue;
+            bool match = true;
+            for (int i = 0; i < ua.Length; i++)
+            {
+                byte a = userAgent[i];
+                byte b = ua[i];
+                if (a == b || (a >= 'A' && a <= 'Z' && a + 32 == b) || (b >= 'A' && b <= 'Z' && b + 32 == a))
+                    continue;
+                match = false;
+                break;
+            }
+            if (!match) continue;
             _specificStates.Add(new UserAgentState());
             _everSeenSpecificAgent = _seenSpecificAgent = true;
             return;
@@ -102,20 +113,49 @@ public class RobotsMachine : IRobotsParseHandler
         if (!CurrentAgentIsSignificant)
             return;
         _seenSeparator = true;
-        var haveWildcards = value.Length >= 1 && (value.Contains((byte)'*') || value[^1] == '$');
-        var state = new AllowState(value.ToArray(), haveWildcards);
+
+        var isSimplePattern = !value.ContainsAny("*$"u8);
+
+        AllowState? rootState = null;
+        // Google-specific optimization: 'index.htm' and 'index.html' are normalized
+        // to '/'.
+        var slashPos = value.LastIndexOf((byte)'/');
+        if (slashPos != -1 && value[slashPos..].StartsWith(IndexHtmBytes))
+        {
+            var len = slashPos + 1;
+            var newValue = new byte[len + 1];
+            value[..len].CopyTo(newValue);
+            newValue[len] = (byte)'$';
+            rootState = new AllowState(newValue, false);
+        }
+
+        var state = new AllowState(value.ToArray(), isSimplePattern);
         if (_seenSpecificAgent)
+        {
             _specificStates.Add(state);
+            if (rootState != null)
+            {
+                _specificStates.Add(rootState);
+            }
+        }
         if (_seenGlobalAgent)
+        {
             _globalStates.Add(state);
+            if (rootState != null)
+            {
+                _globalStates.Add(rootState);
+            }
+        }
     }
+
     public void HandleDisallow(int lineNum, ReadOnlySpan<byte> value)
     {
         if (!CurrentAgentIsSignificant)
             return;
         _seenSeparator = true;
-        var haveWildcards = value.Length >= 1 && (value.Contains((byte)'*') || value[^1] == '$');
-        var state = new DisallowState(value.ToArray(), haveWildcards);
+
+        var isSimplePattern = !value.ContainsAny("*$"u8);
+        var state = new DisallowState(value.ToArray(), isSimplePattern);
         if (_seenSpecificAgent)
             _specificStates.Add(state);
         if (_seenGlobalAgent)
@@ -132,51 +172,54 @@ public class RobotsMachine : IRobotsParseHandler
 
     public bool PathAllowedByRobots(byte[] path)
     {
-        return !Disallow(path);
+        return !Disallow();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        bool Disallow()
+        {
+            if (!SeenAnyAgent)
+                return false;
+
+            var (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _specificStates);
+            if (allowHierarchy > 0 || disallowHierarchy > 0)
+            {
+                return disallowHierarchy > allowHierarchy;
+            }
+
+            if (_everSeenSpecificAgent)
+            {
+                // Matching group for user-agent but either without disallow or empty one,
+                // i.e. priority == 0.
+                return false;
+            }
+
+            (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _globalStates);
+
+            if (disallowHierarchy > 0 || allowHierarchy > 0)
+            {
+                return disallowHierarchy > allowHierarchy;
+            }
+
+            return false;
+        }
     }
 
-    private bool Disallow(byte[] path)
-    {
-        if (!SeenAnyAgent)
-            return false;
-
-        var (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _specificStates);
-        if (allowHierarchy > 0 || disallowHierarchy > 0)
-        {
-            return disallowHierarchy > allowHierarchy;
-        }
-
-        if (_everSeenSpecificAgent)
-        {
-            // Matching group for user-agent but either without disallow or empty one,
-            // i.e. priority == 0.
-            return false;
-        }
-
-        (allowHierarchy, disallowHierarchy) = AssessAccessRules(path, _globalStates);
-
-        if (disallowHierarchy > 0 || allowHierarchy > 0)
-        {
-            return disallowHierarchy > allowHierarchy;
-        }
-
-        return false;
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static (int, int) AssessAccessRules(byte[] path, List<State> states)
     {
         var allowHierarchy = NoMatchPriority; // Characters of 'url' matching Allow.
         var disallowHierarchy = NoMatchPriority; // Characters of 'url' matching Disallow.
 
-        foreach (var state in states)
+        for (int i = 0; i < states.Count; i++)
         {
+            var state = states[i];
             switch (state)
             {
                 case AllowState allow:
-                    allowHierarchy = CheckAllow(path, allow.Pattern, allow.HaveWildcards, allowHierarchy);
+                    allowHierarchy = Check(path, allow.Pattern.Span, allow.IsSimplePattern, allowHierarchy);
                     break;
                 case DisallowState disallow:
-                    disallowHierarchy = CheckDisallow(path, disallow.Pattern, disallow.HaveWildcards, disallowHierarchy);
+                    disallowHierarchy = Check(path, disallow.Pattern.Span, disallow.IsSimplePattern, disallowHierarchy);
                     break;
             }
         }
@@ -186,49 +229,14 @@ public class RobotsMachine : IRobotsParseHandler
     private static readonly byte[] IndexHtmBytes = "/index.htm"u8.ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CheckAllow(byte[] path, ReadOnlySpan<byte> pattern, bool haveWildcards, int allow)
+    private static int Check(byte[] path, ReadOnlySpan<byte> pattern, bool isSimplePattern, int currentPriority)
     {
-        while (true)
+        var priority = LongestMatchRobotsMatchStrategy.MatchFast(path, pattern, isSimplePattern);
+        if (priority < 0) return currentPriority;
+        if (currentPriority < priority)
         {
-            var priority = LongestMatchRobotsMatchStrategy.MatchAllowFast(path, pattern, haveWildcards);
-            if (priority >= 0)
-            {
-                if (allow < priority)
-                {
-                    allow = priority;
-                }
-            }
-            else
-            {
-                // Google-specific optimization: 'index.htm' and 'index.html' are normalized
-                // to '/'.
-                var slashPos = pattern.LastIndexOf((byte)'/');
-
-                if (slashPos != -1 && pattern[slashPos..].StartsWith(IndexHtmBytes))
-                {
-                    var len = slashPos + 1;
-                    var newpattern = new byte[len + 1];
-                    pattern[..len].CopyTo(newpattern);
-                    newpattern[len] = (byte)'$';
-                    pattern = newpattern;
-                    haveWildcards = true;
-                    continue;
-                }
-            }
-            break;
+            currentPriority = priority;
         }
-        return allow;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CheckDisallow(byte[] path, ReadOnlySpan<byte> value, bool haveWildcards, int disallow)
-    {
-        var priority = LongestMatchRobotsMatchStrategy.MatchDisallowFast(path, value, haveWildcards);
-        if (priority < 0) return disallow;
-        if (disallow < priority)
-        {
-            disallow = priority;
-        }
-        return disallow;
+        return currentPriority;
     }
 }
