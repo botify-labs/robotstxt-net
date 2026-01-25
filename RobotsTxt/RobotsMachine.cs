@@ -114,12 +114,39 @@ public class RobotsMachine : IRobotsParseHandler
             return;
         _seenSeparator = true;
         var haveWildcards = value.Length >= 1 && (value.Contains((byte)'*') || value[^1] == '$');
+
+        AllowState? rootState = null;
+        // Google-specific optimization: 'index.htm' and 'index.html' are normalized
+        // to '/'.
+        var slashPos = value.LastIndexOf((byte)'/');
+        if (slashPos != -1 && value[slashPos..].StartsWith(IndexHtmBytes))
+        {
+            var len = slashPos + 1;
+            var newValue = new byte[len + 1];
+            value[..len].CopyTo(newValue);
+            newValue[len] = (byte)'$';
+            rootState = new AllowState(newValue, true);
+        }
+
         var state = new AllowState(value.ToArray(), haveWildcards);
         if (_seenSpecificAgent)
+        {
             _specificStates.Add(state);
+            if (rootState != null)
+            {
+                _specificStates.Add(rootState);
+            }
+        }
         if (_seenGlobalAgent)
+        {
             _globalStates.Add(state);
+            if (rootState != null)
+            {
+                _globalStates.Add(rootState);
+            }
+        }
     }
+
     public void HandleDisallow(int lineNum, ReadOnlySpan<byte> value)
     {
         if (!CurrentAgentIsSignificant)
@@ -187,10 +214,11 @@ public class RobotsMachine : IRobotsParseHandler
             switch (state)
             {
                 case AllowState allow:
-                    allowHierarchy = CheckAllow(path, allow.Pattern.Span, allow.HaveWildcards, allowHierarchy);
+                    allowHierarchy = Check(path, allow.Pattern.Span, allow.HaveWildcards, allowHierarchy);
                     break;
                 case DisallowState disallow:
-                    disallowHierarchy = CheckDisallow(path, disallow.Pattern.Span, disallow.HaveWildcards, disallowHierarchy);
+                    disallowHierarchy = Check(path, disallow.Pattern.Span, disallow.HaveWildcards,
+                        disallowHierarchy);
                     break;
             }
         }
@@ -200,49 +228,14 @@ public class RobotsMachine : IRobotsParseHandler
     private static readonly byte[] IndexHtmBytes = "/index.htm"u8.ToArray();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CheckAllow(byte[] path, ReadOnlySpan<byte> pattern, bool haveWildcards, int allow)
+    private static int Check(byte[] path, ReadOnlySpan<byte> pattern, bool haveWildcards, int currentPriority)
     {
-        while (true)
+        var priority = LongestMatchRobotsMatchStrategy.MatchFast(path, pattern, haveWildcards);
+        if (priority < 0) return currentPriority;
+        if (currentPriority < priority)
         {
-            var priority = LongestMatchRobotsMatchStrategy.MatchFast(path, pattern, haveWildcards);
-            if (priority >= 0)
-            {
-                if (allow < priority)
-                {
-                    allow = priority;
-                }
-            }
-            else
-            {
-                // Google-specific optimization: 'index.htm' and 'index.html' are normalized
-                // to '/'.
-                var slashPos = pattern.LastIndexOf((byte)'/');
-
-                if (slashPos != -1 && pattern[slashPos..].StartsWith(IndexHtmBytes))
-                {
-                    var len = slashPos + 1;
-                    var newpattern = new byte[len + 1];
-                    pattern[..len].CopyTo(newpattern);
-                    newpattern[len] = (byte)'$';
-                    pattern = newpattern;
-                    haveWildcards = true;
-                    continue;
-                }
-            }
-            break;
+            currentPriority = priority;
         }
-        return allow;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CheckDisallow(byte[] path, ReadOnlySpan<byte> value, bool haveWildcards, int disallow)
-    {
-        var priority = LongestMatchRobotsMatchStrategy.MatchFast(path, value, haveWildcards);
-        if (priority < 0) return disallow;
-        if (disallow < priority)
-        {
-            disallow = priority;
-        }
-        return disallow;
+        return currentPriority;
     }
 }
