@@ -12,6 +12,7 @@ namespace TestRobotsTxt
         [InlineData("/", "/", true, 1)]
         [InlineData("/", "/$", true, 2)]
         [InlineData("a", "b", false, -1)]
+        [InlineData("/foo/bar", "/bar", false, -1)]
         [InlineData("abcd", "a", true, 1)]
         [InlineData("abcd", "a$", false, -1)]
         [InlineData("abcd", "a*", true, 2)]
@@ -29,14 +30,12 @@ namespace TestRobotsTxt
                     Encoding.UTF8.GetBytes(pattern)
                 );
             Assert.Equal(expected, actual);
-            var haveWildcards = pattern.Length >= 1 && (pattern.Contains('*') || pattern[^1] == '$');
             var actualLen =
-                LongestMatchRobotsMatchStrategy.MatchFast(
-                    Encoding.UTF8.GetBytes(path),
-                    Encoding.UTF8.GetBytes(pattern),
-                    haveWildcards
+                LongestMatchRobotsMatchStrategy.MatchFast(Encoding.UTF8.GetBytes(path),
+                    Encoding.UTF8.GetBytes(pattern)
                 );
             Assert.Equal(len, actualLen);
+            Assert.Equal(expected, actualLen >= 0);
         }
     }
 }
