@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace RobotsTxt;
 
@@ -32,6 +33,28 @@ public class RobotsMachine : IRobotsParseHandler
     private bool _everSeenSpecificAgent; // True if we ever saw a block for our agent.
     private bool _seenSeparator; // True if saw any key: value pair (key: allow/disallow).
 
+    // Lowest index in _userAgents among the groups we obeyed, or -1. Written only during the parse, which
+    // the constructor runs to completion, so MatchedUserAgent is fixed by the time anyone can observe it.
+    private int _matchedAgentIdx = -1;
+
+    /// <summary>
+    /// Which of the caller's user-agents these verdicts were built from, or null if no specific group
+    /// matched and only the global ("*") rules apply - the same condition PathAllowedByRobots falls back on.
+    /// The value is the CALLER's spelling, not the file's, so it can be compared against the list passed in.
+    /// <para>
+    /// Reporting only: nothing here is read back by the matching. _specificStates, _globalStates and
+    /// PathAllowedByRobots are untouched by the change that added it, and the suite - Google conformance
+    /// included - passes unchanged. That is the evidence for "no verdict moved"; it is not a proof.
+    /// </para>
+    /// <para>
+    /// When several groups match, this is the lowest-index one - callers pass their agents
+    /// most-specific-first, so this is "the most specific agent present". It deliberately under-reports:
+    /// the rules actually obeyed are the UNION of every matching group (see _specificStates), and one token
+    /// cannot describe a two-group file.
+    /// </para>
+    /// </summary>
+    public string? MatchedUserAgent { get; }
+
     private bool CurrentAgentIsSignificant => _seenSpecificAgent || _seenGlobalAgent;
     private bool SeenAnyAgent => _everSeenSpecificAgent || _globalStates.Count > 0;
 
@@ -39,6 +62,12 @@ public class RobotsMachine : IRobotsParseHandler
     {
         _userAgents = userAgents;
         ParseRobotsTxt(robotsBody, this);
+        // Decoded here rather than in the property: the parse is done, so the value can be readonly and
+        // costs one allocation per file instead of one per read.
+        if (_matchedAgentIdx >= 0)
+        {
+            MatchedUserAgent = Encoding.UTF8.GetString(_userAgents[_matchedAgentIdx]);
+        }
     }
 
     private static void ParseRobotsTxt(byte[] robotsBody, IRobotsParseHandler parseCallback)
@@ -88,8 +117,11 @@ public class RobotsMachine : IRobotsParseHandler
             return;
         }
         userAgent = ExtractUserAgent(userAgent);
-        foreach (var ua in _userAgents)
+        // Indexed rather than foreach so the match site can compare specificity: _userAgents is ordered
+        // most-specific-first by the caller, so a lower index is a more specific agent.
+        for (var agentIdx = 0; agentIdx < _userAgents.Count; agentIdx++)
         {
+            var ua = _userAgents[agentIdx];
             if (userAgent.Length != ua.Length) continue;
             bool match = true;
             for (int i = 0; i < ua.Length; i++)
@@ -104,6 +136,12 @@ public class RobotsMachine : IRobotsParseHandler
             if (!match) continue;
             _specificStates.Add(new UserAgentState());
             _everSeenSpecificAgent = _seenSpecificAgent = true;
+            // Min, not first-wins: a file may carry several groups we obey, in any order, and the answer
+            // must come from the caller's priority order rather than the file's layout.
+            if (_matchedAgentIdx < 0 || agentIdx < _matchedAgentIdx)
+            {
+                _matchedAgentIdx = agentIdx;
+            }
             return;
         }
     }
