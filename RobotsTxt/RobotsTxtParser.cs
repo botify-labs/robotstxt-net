@@ -118,10 +118,13 @@ public class RobotsTxtParser(byte[] robotsBody, IRobotsParseHandler handler)
         {
             // (a) % escape sequence.
             var c = src[i];
-            if (c == '%' && i + 2 < src.Length &&
-                (('a' <= src[i + 1] && src[i + 1] <= 'f') || ('a' <= src[i + 2] && src[i + 2] <= 'f')))
+            if (c == '%' && i + 2 < src.Length && src[i + 1].IsXDigit() && src[i + 2].IsXDigit())
             {
-                needCapitalize = true;
+                if (('a' <= src[i + 1] && src[i + 1] <= 'f') || ('a' <= src[i + 2] && src[i + 2] <= 'f'))
+                {
+                    needCapitalize = true;
+                }
+
                 i += 2;
             }
             // (b) needs escaping.

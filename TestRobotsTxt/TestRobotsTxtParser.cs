@@ -57,11 +57,23 @@ namespace TestRobotsTxt
         [InlineData("%xx", "%xx")]
         [InlineData("%2f", "%2F")]
         [InlineData("é", "%C3%A9")]
+        [InlineData("%za", "%za")]
+        [InlineData("Allo%\u0005%f\uFFFD", "Allo%\u0005%f%EF%BF%BD")]
         public void TestMaybeEscapePattern(string src, string expected)
         {
             var actual = RobotsTxtParser.MaybeEscapePattern(Encoding.UTF8.GetBytes(src), out var dst);
             Assert.Equal(expected, Encoding.UTF8.GetString(actual.ToArray()));
             if (dst != null) ArrayPool<byte>.Shared.Return(dst);
+        }
+
+        [Theory]
+        [InlineData("%za")]
+        [InlineData("%az")]
+        public void TestMaybeEscapePatternIgnoresIncompleteEscapeSequences(string src)
+        {
+            var actual = RobotsTxtParser.MaybeEscapePattern(Encoding.UTF8.GetBytes(src), out var dst);
+            Assert.Null(dst);
+            Assert.Equal(src, Encoding.UTF8.GetString(actual.ToArray()));
         }
     }
 }
