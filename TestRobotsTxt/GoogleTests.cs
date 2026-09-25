@@ -6,13 +6,29 @@ using Xunit;
 
 namespace TestRobotsTxt
 {
-    public class GoogleTests
+    public sealed class GoogleTestsOnRobotsMatcher : GoogleTests
     {
-        bool IsUserAgentAllowed(string robotsTxt, string userAgent, string url)
+        protected override bool IsUserAgentAllowed(string robotsTxt, string userAgent, string url)
         {
             RobotsMatcher matcher = new RobotsMatcher();
             return matcher.OneAgentAllowedByRobots(Encoding.UTF8.GetBytes(robotsTxt), new UTF8Encoding().GetBytes(userAgent), url);
         }
+    }
+
+    public sealed class GoogleTestsOnRobotsMachine : GoogleTests
+    {
+        protected override bool IsUserAgentAllowed(string robotsTxt, string userAgent, string url)
+        {
+            var path = RobotsMatcher.GetPathParamsQuery(url);
+            var machine = new RobotsMachine(Encoding.UTF8.GetBytes(robotsTxt),
+                new List<byte[]> { new UTF8Encoding().GetBytes(userAgent) });
+            return machine.PathAllowedByRobots(new UTF8Encoding().GetBytes(path));
+        }
+    }
+
+    public abstract class GoogleTests
+    {
+        protected abstract bool IsUserAgentAllowed(string robotsTxt, string userAgent, string url);
 
         // Google-specific: system test.
         [Theory]
@@ -258,6 +274,21 @@ namespace TestRobotsTxt
             Assert.False(IsUserAgentAllowed(robotsTxtGlobal, "FooBot", url));
             Assert.True(IsUserAgentAllowed(robotsTxtGlobal, "BarBot", url));
             Assert.True(IsUserAgentAllowed(robotsTxtOnlySpecific, "QuxBot", url));
+        }
+
+        // Not in upstream: in ID_GlobalGroups_Secondary the global "allow: /" ties a leaked "disallow: /" and
+        // wins, so it cannot see FooBot's rules leaking into the global group.
+        [Fact]
+        public void GlobalGroup_DoesNotObeyALaterUnrelatedGroup()
+        {
+            const string robotsTxt = "user-agent: *\n" +
+                                     "disallow: /private/\n" +
+                                     "user-agent: FooBot\n" +
+                                     "disallow: /\n";
+
+            Assert.True(IsUserAgentAllowed(robotsTxt, "BarBot", "http://foo.bar/x/y"));
+            Assert.False(IsUserAgentAllowed(robotsTxt, "BarBot", "http://foo.bar/private/y"));
+            Assert.False(IsUserAgentAllowed(robotsTxt, "FooBot", "http://foo.bar/x/y"));
         }
 
         // Matching rules against URIs is case sensitive.
